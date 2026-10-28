@@ -1,4 +1,6 @@
 import hashlib
+import hmac
+import secrets
 from datetime import datetime, timedelta, timezone
 
 import jwt
@@ -10,12 +12,23 @@ from .db import get_db
 from . import models
 
 
-def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
+_ITERATIONS = 200_000
+
+
+def hash_password(password: str, salt: str | None = None) -> str:
+    """Salted PBKDF2-SHA256, stored as 'pbkdf2$<iterations>$<salt>$<hash>'."""
+    salt = salt or secrets.token_hex(16)
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), _ITERATIONS).hex()
+    return f"pbkdf2${_ITERATIONS}${salt}${digest}"
 
 
 def verify_password(password: str, hashed: str) -> bool:
-    return hash_password(password) == hashed
+    try:
+        _, iterations, salt, digest = hashed.split("$")
+    except ValueError:
+        return False
+    check = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), int(iterations)).hex()
+    return hmac.compare_digest(check, digest)
 
 
 def make_token(user_id: int, org_id: int | None = None) -> str:

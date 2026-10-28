@@ -15,6 +15,9 @@ PEOPLE_NORTHWIND = [
     ("Priya Nair", "priya@northwind.test", "Support", "employee", "support", "junior"),
     ("Arjun Iyer", "arjun@northwind.test", "Support", "employee", "support", "senior"),
     ("Kavitha Menon", "kavitha@northwind.test", "Support", "employee", "support", "mid"),
+    ("Farah Ali", "farah@northwind.test", "Support", "employee", "support", "junior"),
+    ("Joseph Paul", "joseph@northwind.test", "Support", "employee", "support", "mid"),
+    ("Ananya Bose", "ananya@northwind.test", "Support", "employee", "support", "junior"),
     ("Dev Malhotra", "dev@northwind.test", "Engineering", "employee", "engineering", "lead"),
     ("Sara Thomas", "sara@northwind.test", "Engineering", "employee", "engineering", "mid"),
     ("Imran Khan", "imran@northwind.test", "HR", "employee", "manager", "senior"),
@@ -48,12 +51,14 @@ def run():
     bp, bp_depts = make_org("Bluepeak Retail", ["Stores", "Customer Care"])
 
     users = {}
+    # Demo-only: every seeded user has the same password, so hash once (PBKDF2 is slow on purpose)
+    demo_hash = hash_password("pulse123")
 
     def add_people(org, depts, people):
         for name, email, dept, role, job_role, seniority in people:
             u = users.get(email)
             if not u:
-                u = models.User(name=name, email=email, password_hash=hash_password("pulse123"))
+                u = models.User(name=name, email=email, password_hash=demo_hash)
                 db.add(u)
                 db.flush()
                 users[email] = u
@@ -80,6 +85,19 @@ def run():
     answer("vikram@northwind.test", nw, "common-open", "Used ChatGPT to draft 20 follow-up emails and edited each one.", 4, "Regular use with editing.", [])
     answer("priya@northwind.test", nw, "common-freq", "A few times a month", 2)
     answer("priya@northwind.test", nw, "common-open", "Pasted a customer's complaint thread into ChatGPT to summarise it.", 3, "Useful summary but shared customer data.", ["customer_data_shared"])
+    # Enough Support respondents (5) that Support clears the minimum group size;
+    # Sales and Engineering stay below it and are pooled into "Other teams"
+    for email, freq, score, open_text, open_score, flags in [
+        ("arjun@northwind.test", "Many times a day, it's part of how I work", 5, "Built a prompt template the team uses to draft replies, then we review each one.", 5, []),
+        ("kavitha@northwind.test", "A few times a week", 3, "Summarised a long escalation thread before handing it to engineering.", 3, ["unreviewed_output"]),
+        ("farah@northwind.test", "Daily", 4, "Drafted first replies with AI and edited tone before sending.", 4, []),
+        ("joseph@northwind.test", "A few times a month", 2, "Asked AI to rewrite a refund email that included the customer's address.", 2, ["customer_data_shared"]),
+        ("rohan@northwind.test", "A few times a week", 3, "Used AI to prepare talking points for a client call.", 3, []),
+        ("sara@northwind.test", "Daily", 4, "Used a code assistant to write tests, reviewed every one.", 4, []),
+    ]:
+        answer(email, nw, "common-freq", freq, score)
+        answer(email, nw, "common-open", open_text, open_score, "Seeded example.", flags)
+
     answer("tom@bluepeak.test", bp, "common-freq", "A few times a week", 3)
     answer("kabir@bluepeak.test", bp, "common-open", "Uploaded our full customer refund list to an AI tool to find patterns.", 3, "Good idea, unsafe data handling.", ["customer_data_shared", "confidential_data_shared"])
     answer("kabir@bluepeak.test", bp, "common-freq", "Daily", 4)

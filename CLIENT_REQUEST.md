@@ -10,4 +10,4 @@
 >
 > Thanks, Northwind HR
 
-Not started yet.
+**Status: done.** See [docs/CLIENT_REQUEST_RESPONSE.md](docs/CLIENT_REQUEST_RESPONSE.md) for how each point was handled and the open questions for Northwind.

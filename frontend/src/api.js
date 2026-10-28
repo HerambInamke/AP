@@ -5,7 +5,8 @@ export function getToken() {
 }
 
 export function setToken(t) {
-  localStorage.setItem("token", t);
+  if (t) localStorage.setItem("token", t);
+  else localStorage.removeItem("token");
 }
 
 export async function api(path, options = {}) {
@@ -17,7 +18,9 @@ export async function api(path, options = {}) {
       ...(options.headers || {}),
     },
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || "Request failed");
+  // Error bodies are not always JSON (proxy errors, 500 pages)
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 401) window.dispatchEvent(new Event("auth-expired"));
+  if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Request failed");
   return data;
 }

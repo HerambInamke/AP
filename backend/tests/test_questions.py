@@ -25,3 +25,9 @@ def test_lead_manager_gets_policy_questions():
     got = ids(questions_for("manager", "lead"))
     assert "mgr-policy" in got
     assert "mgr-open" in got
+
+
+def test_lead_engineer_gets_senior_questions():
+    # Regression: seniority was compared as strings, so "lead" ranked below "mid"/"senior"
+    got = ids(questions_for("engineering", "lead"))
+    assert {"eng-review", "eng-arch"} <= got

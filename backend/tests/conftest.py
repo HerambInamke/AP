@@ -1,7 +1,9 @@
 import os
+import tempfile
 import pytest
 
-os.environ["DATABASE_URL"] = "sqlite:///./test.db"
+# Isolated throwaway DB so tests never touch (or leave behind) a real database file
+os.environ["DATABASE_URL"] = "sqlite:///" + os.path.join(tempfile.mkdtemp(), "test.db")
 os.environ["AI_MODE"] = "mock"
 
 from fastapi.testclient import TestClient  # noqa: E402
@@ -24,3 +26,13 @@ def login(client, email, org_name=None):
         token = client.post("/auth/select-org", json={"org_id": org["org_id"]},
                             headers={"Authorization": f"Bearer {token}"}).json()["token"]
     return {"Authorization": f"Bearer {token}"}, data
+
+
+def full_answers(client, headers):
+    """A valid, complete submission for whatever questions this user is shown."""
+    qs = client.get("/diagnostic/questions", headers=headers).json()
+    return [
+        {"question_id": q["id"],
+         "answer": q["options"][-1] if q["type"] == "mcq" else "I drafted emails with AI and reviewed them."}
+        for q in qs
+    ]

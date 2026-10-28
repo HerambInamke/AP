@@ -5,6 +5,7 @@ from ..db import get_db
 from .. import models
 from ..auth import current_membership
 from ..utils import maturity_level
+from ..services.risks import for_employee
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
@@ -28,6 +29,15 @@ def my_report(m: models.Membership = Depends(current_membership), db: Session = 
         "answered": len(rows),
         "average_score": round(avg, 2) if avg is not None else None,
         "level": maturity_level(avg),
-        "risks": flags,
+        "risks": [for_employee(f) for f in flags],
         "next_steps": NEXT_STEPS.get(m.job_role, NEXT_STEPS["manager"]),
     }
+
+
+@router.delete("/me")
+def delete_my_data(m: models.Membership = Depends(current_membership), db: Session = Depends(get_db)):
+    """Client rule: an employee can delete all their answers (and so their report) for this org.
+    Dashboards are computed live from responses, so they drop out immediately."""
+    deleted = db.query(models.Response).filter_by(membership_id=m.id).delete()
+    db.commit()
+    return {"deleted": deleted}
